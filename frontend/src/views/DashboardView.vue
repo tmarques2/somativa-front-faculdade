@@ -1,14 +1,32 @@
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, computed } from 'vue';
 import KpiCard from '../components/KpiCard.vue';
+import MaintenanceChart from '../components/MaintenanceChart.vue'; // Importa o gráfico
 import { useMaintenanceStore } from '../store/maintenanceStore';
 
-// Inicializa a store
 const store = useMaintenanceStore();
 
-// Quando o componente for montado, busca os dados da API
 onMounted(() => {
   store.fetchManutencoes();
+});
+
+// Prepara os dados para o gráfico
+const chartData = computed(() => {
+  const labels = ['Atrasadas', 'Concluídas', 'Pendentes'];
+  const data = [
+    store.kpis.atrasadas,
+    store.kpis.concluidas,
+    store.kpis.pendentes,
+  ];
+
+  return {
+    labels: labels,
+    datasets: [{
+      label: 'Total de Manutenções por Status',
+      backgroundColor: ['#EF4444', '#22C55E', '#EAB308'], // Vermelho, Verde, Amarelo
+      data: data,
+    }]
+  };
 });
 </script>
 
@@ -26,9 +44,7 @@ onMounted(() => {
 
     <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
       <h2 class="text-xl font-bold mb-4">Evolução das Manutenções</h2>
-      <div class="h-64 bg-gray-100 rounded flex items-center justify-center">
-        <p class="text-gray-500">[Gráfico virá aqui]</p>
-      </div>
+      <MaintenanceChart v-if="!store.isLoading" :chart-data="chartData" />
     </div>
   </div>
 </template>

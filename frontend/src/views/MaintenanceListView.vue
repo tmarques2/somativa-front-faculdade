@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import MaintenanceTable from '../components/MaintenanceTable.vue';
 import MaintenanceForm from '../components/MaintenanceForm.vue';
 import { useMaintenanceStore } from '../store/maintenanceStore';
@@ -7,22 +7,34 @@ import { useMaintenanceStore } from '../store/maintenanceStore';
 const store = useMaintenanceStore();
 const showForm = ref(false);
 
-// Quando o componente é montado, busca as manutenções
+// Estado para os filtros
+const filtros = ref({
+  maquina: '',
+  status: '',
+});
+
 onMounted(() => {
-  // Só busca se a lista estiver vazia, para evitar recargas desnecessárias
   if (store.manutencoes.length === 0) {
     store.fetchManutencoes();
   }
 });
 
-// Função para lidar com o envio do formulário
+// Lista de manutenções filtrada
+const manutençõesFiltradas = computed(() => {
+  return store.manutencoes.filter(m => {
+    const maquinaMatch = m.maquina.toLowerCase().includes(filtros.value.maquina.toLowerCase());
+    const statusMatch = m.status.toLowerCase().includes(filtros.value.status.toLowerCase());
+    return maquinaMatch && statusMatch;
+  });
+});
+
 async function handleAddManutencao(formData) {
   try {
     await store.addManutencao(formData);
-    showForm.value = false; // Fecha o formulário após o sucesso
-    alert('Manutenção registrada com sucesso!');
+    showForm.value = false;
+    // Adicionar feedback visual aqui depois
   } catch (error) {
-    alert('Falha ao registrar manutenção.');
+    console.error(error);
   }
 }
 </script>
@@ -41,7 +53,23 @@ async function handleAddManutencao(formData) {
         <MaintenanceForm @submit="handleAddManutencao" />
     </div>
 
+    <div class="mb-6 bg-white p-4 rounded-lg shadow-md flex space-x-4">
+        <div class="flex-1">
+            <label for="filtro-maquina" class="block text-sm font-medium text-gray-700">Filtrar por Máquina</label>
+            <input v-model="filtros.maquina" type="text" id="filtro-maquina" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+        </div>
+        <div class="flex-1">
+            <label for="filtro-status" class="block text-sm font-medium text-gray-700">Filtrar por Status</label>
+            <select v-model="filtros.status" id="filtro-status" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <option value="">Todos</option>
+                <option value="Concluída">Concluída</option>
+                <option value="Pendente">Pendente</option>
+                <option value="Atrasada">Atrasada</option>
+            </select>
+        </div>
+    </div>
+
     <div v-if="store.isLoading" class="text-center">Carregando...</div>
-    <MaintenanceTable v-else :manutencoes="store.manutencoes" />
+    <MaintenanceTable v-else :manutencoes="manutençõesFiltradas" />
   </div>
 </template>
